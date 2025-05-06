@@ -1,19 +1,25 @@
 # Volkszaehler_Delete_tool
 small tool to delete value in Volkszaehler DB 
 
+
 projekt startet as Powershell 
 V0.4b as reference work quiet good
 v0.5b with some tweak (untestet)
 
+
 follow by phython with tkinter interface also as Windows 7/8/10/11 (without UAC) 
+
 
 v0.5b testet and work 
 
+
 v0.8b experimental with negativ numbers support (untested , i have no db with negativ numbers)
+
 
 Data Deletion Tool v0.5b
 By Tobias aka Raptorsds (github.com/raptorsds)
 Created with Claude | MIT License
+
 
 This tool helps you delete data points that exceed a specified maximum value.
 
@@ -33,6 +39,7 @@ Instructions:
 
 The tool will fetch data points and delete any that exceed the specified max value.
 Progress and results will be shown in the log area.
+
 
 
 Anweisungen:
