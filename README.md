@@ -103,6 +103,7 @@ jeweiligen Actions-Lauf als Artefakt zum Download bereit.
 | v0.5b | PowerShell | einige Anpassungen (ungetestet) |
 | v0.5b | Python/tkinter | getestet, funktioniert |
 | v0.8b | Python/tkinter | experimentell: negative Schwellenwerte, Verzögerung wählbar |
+| v0.6 | Python/tkinter | Basis v0.8b, Hilfe zur DB-Freigabe (DELETE-Recht) mit Kopier-Buttons, EXE-Build per GitHub Actions |
 
 ## Lizenz
 

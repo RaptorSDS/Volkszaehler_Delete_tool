@@ -8,7 +8,7 @@ import threading
 from datetime import datetime
 import uuid as uuid_lib
 
-__version__ = "0.8b"
+__version__ = "0.6"
 APP_NAME = "Data Deletion Tool"
 
 class DataDeletionApp:
@@ -148,7 +148,14 @@ class DataDeletionApp:
         """Show help information"""
         help_window = tk.Toplevel(self.root)
         help_window.title(f"Help - {APP_NAME}")
-        help_window.geometry("600x400")
+        help_window.geometry("720x640")
+        
+        notebook = ttk.Notebook(help_window)
+        notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Tab 1: usage instructions
+        usage_tab = ttk.Frame(notebook)
+        notebook.add(usage_tab, text="Instructions")
         
         help_text = f"""
 {APP_NAME} v{__version__}
@@ -156,6 +163,9 @@ By Tobias aka Raptorsds (github.com/raptorsds)
 Created with Claude | MIT License
 
 This tool helps you delete data points that exceed a specified maximum value.
+
+Requirement: the database user vz@localhost needs the DELETE privilege,
+see tab "DB Permissions".
 
 Instructions:
 1. Server Address: Enter the IP or domain name without http:// or https://
@@ -175,10 +185,75 @@ The tool will fetch data points and delete any that exceed the specified max val
 Progress and results will be shown in the log area.
         """
         
-        help_scroll = scrolledtext.ScrolledText(help_window, wrap=tk.WORD)
-        help_scroll.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        help_scroll = scrolledtext.ScrolledText(usage_tab, wrap=tk.WORD)
+        help_scroll.pack(fill=tk.BOTH, expand=True)
         help_scroll.insert(tk.END, help_text)
         help_scroll.config(state=tk.DISABLED)
+        
+        # Tab 2: granting the DELETE privilege to the vz database user
+        permissions_tab = ttk.Frame(notebook)
+        notebook.add(permissions_tab, text="DB Permissions / DB-Rechte")
+        self.build_permissions_help(permissions_tab)
+    
+    def build_permissions_help(self, parent):
+        """Help on granting the DELETE privilege to vz@localhost"""
+        canvas = tk.Canvas(parent, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=canvas.yview)
+        content = ttk.Frame(canvas, padding="10")
+        content.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=content, anchor=tk.NW)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        def text(value, bold=False):
+            font = ("TkDefaultFont", 10, "bold") if bold else ("TkDefaultFont", 10)
+            ttk.Label(content, text=value, font=font, wraplength=620,
+                      justify=tk.LEFT).pack(anchor=tk.W, pady=(8, 2))
+        
+        def command(value):
+            frame = ttk.Frame(content)
+            frame.pack(fill=tk.X, pady=2)
+            lines = value.count("\n") + 1
+            box = tk.Text(frame, height=lines, width=70, font=("Courier New", 9),
+                          background="#f4f4f4", relief=tk.SOLID, borderwidth=1)
+            box.insert(tk.END, value)
+            box.config(state=tk.DISABLED)
+            box.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            ttk.Button(frame, text="Copy", width=6,
+                       command=lambda: self.copy_to_clipboard(value)).pack(side=tk.LEFT, padx=5, anchor=tk.N)
+        
+        text("Freigabe der Daten für den Benutzer vz (DELETE-Recht)", bold=True)
+        text("Um Datensätze per HTTP-Anfrage löschen zu können, benötigt der MySQL-Benutzer "
+             "vz@localhost zusätzlich das DELETE-Recht. Ohne dieses Recht schlägt der "
+             "Löschvorgang mit einem Fehler fehl.\n"
+             "To delete data via HTTP request, the MySQL user vz@localhost needs the "
+             "DELETE privilege.")
+        
+        text("Volkszähler Raspberry Pi Image", bold=True)
+        text("Auf dem Raspberry Pi (z.B. per SSH) an MySQL anmelden "
+             "(Standard-Passwort des Images: raspberry):")
+        command("sudo mysql --user=root -praspberry")
+        text("Danach in der MySQL-Konsole:")
+        command("grant select, update, insert, delete on volkszaehler.* to vz@localhost;\n"
+                "flush privileges;\n"
+                "exit")
+        
+        text("Andere Systeme / Other systems", bold=True)
+        text("DELETE-Recht vergeben / grant DELETE privilege:")
+        command("grant delete on volkszaehler.* to 'vz'@'localhost';")
+        text("DELETE-Recht wieder entziehen / revoke DELETE privilege:")
+        command("revoke delete on volkszaehler.* from 'vz'@'localhost';")
+        
+        text("Hinweis: Das Recht nach dem Bereinigen wieder zu entziehen verhindert, dass "
+             "Daten versehentlich über die HTTP-Schnittstelle gelöscht werden.\n"
+             "Note: revoke the privilege after cleanup to prevent accidental deletion "
+             "through the HTTP interface.")
+    
+    def copy_to_clipboard(self, value):
+        """Copy a text to the clipboard"""
+        self.root.clipboard_clear()
+        self.root.clipboard_append(value)
     
     def log(self, message, level="INFO"):
         """Add a message to the log with timestamp"""
