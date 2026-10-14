@@ -48,25 +48,43 @@ revoke delete on volkszaehler.* from 'vz'@'localhost';
 
 ## Bedienung
 
-1. Server-Adresse: IP-Adresse oder Domainname ohne `http://` oder `https://`
+1. Server-Adresse: IP-Adresse oder Hostname der Middleware
+   - optional mit `http://` oder `https://` (Standard: `http://`)
+   - optional mit Port, z.B. `vz.example.com:8080`
+   - optional mit Middleware-Pfad, z.B. `https://vz.example.com/middleware.php`
+   - Beispiele: `192.168.1.100` · `raspberrypi` · `vz.example.com:8080` · `https://vz.example.com/middleware.php`
 2. UUID: UUID des Kanals, der bereinigt werden soll
-3. Start/Endzeit: Zeitbereich im Format `tt.MM.jjjj HH:mm` oder als UNIX-Zeitstempel (ms)
-4. Höchstwert: Schwellenwert – alle Datenpunkte darüber werden gelöscht
-   - Mit dem +/- Wähler positive oder negative Schwellenwerte festlegen
-   - Bei negativen Schwellenwerten werden Werte unterhalb des Schwellenwerts gelöscht
+3. Start/Endzeit: Zeitbereich im Format `tt.MM.jjjj HH:mm` (Ortszeit des PCs) oder als
+   UNIX-Zeitstempel in ms. Die Startzeit muss vor der Endzeit liegen.
+4. Höchstwert: Schwellenwert
+   - `+`: alle Datenpunkte über dem Schwellenwert werden gelöscht (geprüft wird `max`)
+   - `-`: alle Datenpunkte unter dem negativen Schwellenwert werden gelöscht (geprüft wird `min`)
+   - Beispiel: Bei -4000 werden Werte wie -6000 gelöscht, -3990 bleibt erhalten
 5. Verarbeitungsverzögerung:
    - 200 ms: Schnelle lokale x86-Systeme
    - 500 ms: Server-Umgebungen (lokal oder remote)
    - 1000 ms: Raspberry Pi oder ähnliche Geräte
    - 2000 ms: Langsame Systeme oder Verbindungen mit hoher Latenz
+6. Testlauf (Dry run): zeigt nur an, welche Datenpunkte über dem Schwellenwert liegen, löscht
+   nichts. Bei Zähler-Kanälen ist das eine Schätzung, weil sich durch das Löschen eines
+   Messwerts der berechnete Wert des folgenden Intervalls ändert.
 
-Fortschritt und Ergebnisse werden im Log-Bereich angezeigt.
+Fortschritt und Ergebnisse werden im Log-Bereich angezeigt. Das Log wird zusätzlich pro Tag
+als Datei gespeichert (Button „Open Log Folder“), die letzten Eingaben werden beim nächsten
+Start wiederhergestellt. Beides liegt unter `%APPDATA%\VZ_Delete_Tool\`.
+
+Sicherheitsfunktionen:
+- Meldet die Middleware einen Fehler (z.B. fehlendes DELETE-Recht), bricht das Tool mit der
+  Fehlermeldung der Middleware ab.
+- Taucht ein bereits gelöschter Zeitstempel erneut auf, bricht das Tool ab statt endlos zu löschen.
+- Alle HTTP-Anfragen haben ein Timeout, das Tool hängt nicht bei nicht erreichbarem Server.
 
 ## Projektstruktur
 
 ```
 src/vz_delete_tool.py         aktuelle Version (Python / tkinter)
 requirements.txt              Python-Abhängigkeiten
+tests/                        Unit-Tests (python -m unittest discover -s tests)
 .github/workflows/build.yml   Build der EXE-Dateien + Release
 archive/powershell/           alte PowerShell-Versionen (v0.4, v0.5b)
 archive/python/               alte Python-Versionen inkl. EXE (v0.5b, v0.8b)
@@ -87,8 +105,8 @@ pyinstaller --onefile --windowed src/vz_delete_tool.py
 1. `__version__` in `src/vz_delete_tool.py` anpassen und committen
 2. Tag passend zur Version setzen und pushen, z.B.:
    ```
-   git tag v0.6
-   git push origin v0.6
+   git tag v0.9
+   git push origin v0.9
    ```
 3. GitHub Actions baut beide EXE-Dateien und hängt sie an ein neues Release.
 
@@ -103,7 +121,7 @@ jeweiligen Actions-Lauf als Artefakt zum Download bereit.
 | v0.5b | PowerShell | einige Anpassungen (ungetestet) |
 | v0.5b | Python/tkinter | getestet, funktioniert |
 | v0.8b | Python/tkinter | experimentell: negative Schwellenwerte, Verzögerung wählbar |
-| v0.6 | Python/tkinter | Basis v0.8b, Hilfe zur DB-Freigabe (DELETE-Recht) mit Kopier-Buttons, EXE-Build per GitHub Actions |
+| v0.9 | Python/tkinter | Basis v0.8b: Hilfe zur DB-Freigabe, Fehlerkorrekturen (Zeitzone, negative Werte über `min`, Endlosschleifen-Schutz, Thread-Sicherheit, Timeouts), Server mit https/Port/Pfad, Testlauf, Log-Datei, gespeicherte Eingaben, EXE-Build per GitHub Actions |
 
 ## Lizenz
 
