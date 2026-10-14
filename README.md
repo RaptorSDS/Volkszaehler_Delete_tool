@@ -100,21 +100,6 @@ pip install pyinstaller
 pyinstaller --onefile --windowed src/vz_delete_tool.py
 ```
 
-## Release erstellen
-
-Die EXE-Dateien werden komplett per GitHub Actions gebaut (`.github/workflows/build.yml`):
-
-1. `__version__` in `src/vz_delete_tool.py` erhöhen, z.B. auf `"1.0"`
-2. Änderungen per Pull Request nach `main` mergen
-3. Der Workflow baut beide EXE-Dateien und erstellt automatisch das Release `v1.0`
-   mit beiden EXE-Dateien. Gibt es das Release für die Version schon, wird kein neues erstellt.
-
-Manuell starten: GitHub → **Actions → Build Windows EXE → Run workflow** (Branch `main`).
-Ein Tag `v*` (z.B. `git tag v1.0 && git push origin v1.0`) erstellt ebenfalls ein Release.
-
-Bei jedem Push auf einen anderen Branch und bei jedem Pull Request werden die EXE-Dateien
-ebenfalls gebaut und stehen im jeweiligen Actions-Lauf als Artefakt zum Download bereit.
-
 ## Versionshistorie
 
 | Version | Typ | Status |
