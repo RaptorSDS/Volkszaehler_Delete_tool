@@ -1,7 +1,9 @@
 name: Build Windows EXE
 
-# - Jeder Push / Pull Request: EXE bauen und als Workflow-Artefakt ablegen
-# - Tag "v*" (z.B. v0.6): EXE bauen und als GitHub Release veröffentlichen
+# - Jeder Push / Pull Request: Tests + EXE bauen und als Workflow-Artefakt ablegen
+# - Push auf main (z.B. Merge eines Pull Requests) oder manueller Start auf main:
+#   GitHub Release "v<__version__>" mit beiden EXE-Dateien erstellen, falls es noch nicht existiert
+# - Tag "v*" (z.B. v0.9): Release für diesen Tag erstellen
 on:
   push:
     branches: ["**"]
@@ -16,6 +18,8 @@ jobs:
   build:
     name: Build (${{ matrix.target }})
     runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     strategy:
       fail-fast: false
       matrix:
@@ -74,17 +78,38 @@ jobs:
 
   release:
     name: GitHub Release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     needs: build
     runs-on: ubuntu-latest
+    env:
+      TAG: v${{ needs.build.outputs.version }}
     steps:
+      - name: Check if release already exists
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Release $TAG existiert bereits - zum Veröffentlichen __version__ erhöhen."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release $TAG wird erstellt."
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/download-artifact@v4
+        if: steps.check.outputs.exists == 'false'
         with:
           path: dist
           merge-multiple: true
 
       - uses: softprops/action-gh-release@v2
+        if: steps.check.outputs.exists == 'false'
         with:
-          name: VZ Delete Tool ${{ github.ref_name }}
+          tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
+          name: VZ Delete Tool ${{ env.TAG }}
           files: dist/*.exe
           generate_release_notes: true
